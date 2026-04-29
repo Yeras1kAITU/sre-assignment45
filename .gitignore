@@ -3,8 +3,7 @@
 *.tfstate.*
 .terraform/
 *.tfplan
-terraform.tfvars
-override.tf
+.terraform.lock.hcl
 
 # Python
 __pycache__/
@@ -15,21 +14,32 @@ __pycache__/
 env/
 venv/
 .env
+*.egg-info/
+dist/
+build/
 
 # Docker
 *.log
+docker-compose.override.yml
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Sensitive
 *.pem
 *.key
 credentials
+secrets/
+
+# Node (if applicable)
+node_modules/
+npm-debug.log*

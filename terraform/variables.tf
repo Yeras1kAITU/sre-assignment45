@@ -1,5 +1,5 @@
 variable "project_name" {
-  description = "Name of the project"
+  description = "SRE Assignment 4-5"
   type        = string
   default     = "microservices-app"
 }
