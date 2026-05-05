@@ -1,0 +1,73 @@
+groups:
+  - name: microservices_alerts
+    interval: 15s
+    rules:
+      # Alert 1: Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 30 seconds."
+
+      # Alert 2: High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value }} errors/sec on {{ $labels.job }}"
+
+      # Alert 3: Slow Response Time
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response on {{ $labels.job }}"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.job }}"
+
+      # Alert 4: Database Connection Failures
+      - alert: DatabaseConnectionFailure
+        expr: rate(psycopg2_errors_total{type="connection"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection failures detected"
+          description: "Service {{ $labels.job }} cannot connect to database"
+
+      # Alert 5: High CPU Usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[1m]) > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage is {{ $value }} on {{ $labels.job }}"
+
+      # Alert 6: Container Restart Loop
+      - alert: ContainerRestartLoop
+        expr: rate(container_restarts_total[10m]) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container restart loop detected"
+          description: "{{ $labels.container }} is restarting frequently"
+
+      # Alert 7: Service Degradation (Order Service specific)
+      - alert: OrderServiceDegraded
+        expr: up{job="order-service"} == 0
+        for: 15s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Order Service is degraded"
+          description: "Order Service has failed - check database connectivity"

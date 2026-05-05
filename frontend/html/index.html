@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -43,255 +43,155 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Microservices E-Commerce Platform</h1>
-            <nav>
-                <button class="active" onclick="showTab('products')">Products</button>
-                <button onclick="showTab('orders')">Orders</button>
-                <button onclick="showTab('chat')">Live Chat</button>
-                <button onclick="showTab('status')">System Status</button>
-            </nav>
-        </header>
+<div class="container">
+    <header>
+        <h1>Microservices E-Commerce Platform</h1>
+        <nav>
+            <button class="active" onclick="showTab('products')">Products</button>
+            <button onclick="showTab('orders')">Orders</button>
+            <button onclick="showTab('chat')">Live Chat</button>
+            <button onclick="showTab('status')">System Status</button>
+        </nav>
+    </header>
 
-        <section id="tab-products" class="active">
-            <h2>Products Catalog</h2>
-            <div id="products-list" class="grid">Loading...</div>
-        </section>
+    <section id="tab-products" class="active">
+        <h2>Products Catalog</h2>
+        <div id="products-list" class="grid">Loading...</div>
+    </section>
 
-        <section id="tab-orders">
-            <h2>Create Order</h2>
-            <div class="card" style="margin-bottom:15px;">
-                <p><strong>User ID:</strong> <input type="text" id="order-user" value="john_doe" style="width:200px;"></p>
-                <div class="order-header">
-                    <span>Product ID</span>
-                    <span>Qty</span>
-                    <span>Price ($)</span>
-                </div>
-                <div id="order-items">
-                    <div class="order-row">
-                        <input type="number" class="prod-id" placeholder="Product ID" value="1" onchange="lookupPrice(this)">
-                        <input type="number" class="prod-qty" placeholder="Qty" value="1" min="1">
-                        <input type="number" class="prod-price" placeholder="Price" value="0" step="0.01" min="0">
-                    </div>
-                </div>
-                <button class="btn btn-secondary" onclick="addOrderRow()">+ Add Item</button>
-                <button class="btn btn-primary" onclick="submitOrder()">Place Order</button>
+    <section id="tab-orders">
+        <h2>Create Order</h2>
+        <div class="card" style="margin-bottom:15px;">
+            <p><strong>User ID:</strong> <input type="text" id="order-user" value="john_doe" style="width:200px;"></p>
+            <div class="order-header">
+                <span>Product ID</span>
+                <span>Qty</span>
+                <span>Price ($)</span>
             </div>
-            <h2>Order History</h2>
-            <div id="orders-list">Loading...</div>
-        </section>
-
-        <section id="tab-chat">
-            <h2>Live Chat</h2>
-            <div class="chat-box">
-                <div id="chat-messages"></div>
-                <div class="chat-input-area">
-                    <input type="text" id="chat-name" value="User" placeholder="Name">
-                    <input type="text" id="chat-msg" placeholder="Type message..." onkeypress="if(event.key==='Enter')sendChat()">
-                    <button class="btn btn-primary" onclick="sendChat()">Send</button>
+            <div id="order-items">
+                <div class="order-row">
+                    <input type="number" class="prod-id" placeholder="Product ID" value="1" onchange="lookupPrice(this)">
+                    <input type="number" class="prod-qty" placeholder="Qty" value="1" min="1">
+                    <input type="number" class="prod-price" placeholder="Price" value="0" step="0.01" min="0">
                 </div>
             </div>
-        </section>
+            <button class="btn btn-secondary" onclick="addOrderRow()">+ Add Item</button>
+            <button class="btn btn-primary" onclick="submitOrder()">Place Order</button>
+        </div>
+        <h2>Order History</h2>
+        <div id="orders-list">Loading...</div>
+    </section>
 
-        <section id="tab-status">
-            <h2>System Health</h2>
-            <div id="status-list" class="grid">Loading...</div>
-            <p style="margin-top:20px;">
-                <a href="http://localhost:9090" target="_blank">Prometheus</a> | 
-                <a href="http://localhost:3000" target="_blank">Grafana</a>
-            </p>
-        </section>
-    </div>
+    <section id="tab-chat">
+        <h2>Live Chat</h2>
+        <div class="chat-box">
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-name" value="User" placeholder="Name">
+                <input type="text" id="chat-msg" placeholder="Type message..." onkeypress="if(event.key==='Enter')sendChat()">
+                <button class="btn btn-primary" onclick="sendChat()">Send</button>
+            </div>
+        </div>
+    </section>
 
-    <script>
-        // Store product prices for lookup
-        var productPrices = {};
-        
-        function showTab(name) {
-            document.querySelectorAll('section').forEach(function(s) { s.classList.remove('active'); });
-            document.getElementById('tab-' + name).classList.add('active');
-            document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
-            event.target.classList.add('active');
-            
-            if (name === 'products') loadProducts();
-            if (name === 'orders') loadOrders();
-            if (name === 'chat' && !window.wsConn) startChat();
-            if (name === 'status') loadStatus();
-        }
+    <section id="tab-status">
+        <h2>System Health</h2>
+        <div id="status-list" class="grid">Loading...</div>
+        <p style="margin-top:20px;">
+            <a href="http://localhost:9090" target="_blank">Prometheus</a> |
+            <a href="http://localhost:3000" target="_blank">Grafana</a>
+        </p>
+    </section>
+</div>
 
-        function loadProducts() {
-            var div = document.getElementById('products-list');
-            div.innerHTML = 'Loading...';
-            fetch('/api/products/products')
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    // Store prices for order lookup
-                    if (d.products) {
-                        d.products.forEach(function(p) {
-                            productPrices[p.id] = p.price;
-                        });
-                    }
-                    
-                    if (d.products && d.products.length > 0) {
-                        div.innerHTML = d.products.map(function(p) {
-                            return '<div class="card"><h3>' + p.name + '</h3><p>' + (p.description||'') + '</p><p><strong>$' + parseFloat(p.price).toFixed(2) + '</strong></p><p>Stock: ' + p.stock + '</p><p>Category: ' + p.category + '</p><p><small>Product ID: ' + p.id + '</small></p></div>';
-                        }).join('');
-                    } else {
-                        div.innerHTML = '<p class="red">No products</p>';
-                    }
-                })
-                .catch(function(e) { div.innerHTML = '<p class="red">Error: ' + e.message + '</p>'; });
-        }
+<script>
+    var productPrices = {};
 
-        // Auto-fill price when product ID is entered
-        function lookupPrice(input) {
-            var productId = parseInt(input.value);
-            var row = input.parentElement;
-            var priceInput = row.querySelector('.prod-price');
-            
-            if (productPrices[productId]) {
-                priceInput.value = productPrices[productId];
-                priceInput.style.borderColor = '#48bb78';
-            } else {
-                priceInput.value = '';
-                priceInput.style.borderColor = '#ddd';
-            }
-        }
+    function showTab(name) {
+        document.querySelectorAll('section').forEach(function(s) { s.classList.remove('active'); });
+        document.getElementById('tab-' + name).classList.add('active');
+        document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
+        event.target.classList.add('active');
+        if (name === 'products') loadProducts();
+        if (name === 'orders') loadOrders();
+        if (name === 'chat' && !window.wsConn) startChat();
+        if (name === 'status') loadStatus();
+    }
 
-        function addOrderRow() {
-            var div = document.createElement('div');
-            div.className = 'order-row';
-            div.innerHTML = '<input type="number" class="prod-id" placeholder="Product ID" onchange="lookupPrice(this)"><input type="number" class="prod-qty" placeholder="Qty" value="1" min="1"><input type="number" class="prod-price" placeholder="Price" value="0" step="0.01" min="0">';
-            document.getElementById('order-items').appendChild(div);
-        }
-
-        function submitOrder() {
-            var userId = document.getElementById('order-user').value;
-            if (!userId) return alert('Please enter a User ID');
-            
-            var items = [];
-            var totalAmount = 0;
-            
-            document.querySelectorAll('.order-row').forEach(function(row) {
-                var id = row.querySelector('.prod-id').value;
-                var qty = row.querySelector('.prod-qty').value;
-                var price = row.querySelector('.prod-price').value;
-                
-                if (id && qty && price) {
-                    var itemTotal = parseFloat(price) * parseInt(qty);
-                    items.push({
-                        product_id: parseInt(id), 
-                        quantity: parseInt(qty), 
-                        price: parseFloat(price)
-                    });
-                    totalAmount += itemTotal;
-                }
-            });
-            
-            if (items.length === 0) return alert('Add at least one item with price');
-            
-            fetch('/api/orders/orders', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: userId, items: items, total_amount: parseFloat(totalAmount.toFixed(2))})
+    function loadProducts() {
+        var div = document.getElementById('products-list');
+        div.innerHTML = 'Loading...';
+        fetch('/api/products/products')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.products) { d.products.forEach(function(p) { productPrices[p.id] = p.price; }); }
+                div.innerHTML = (d.products && d.products.length) ? d.products.map(function(p) {
+                    return '<div class="card"><h3>' + p.name + '</h3><p>' + (p.description||'') + '</p><p><strong>$' + parseFloat(p.price).toFixed(2) + '</strong></p><p>Stock: ' + p.stock + '</p><p>Category: ' + p.category + '</p></div>';
+                }).join('') : '<p class="red">No products</p>';
             })
+            .catch(function(e) { div.innerHTML = '<p class="red">Error: ' + e.message + '</p>'; });
+    }
+
+    function lookupPrice(input) {
+        var productId = parseInt(input.value);
+        var priceInput = input.parentElement.querySelector('.prod-price');
+        if (productPrices[productId]) { priceInput.value = productPrices[productId]; priceInput.style.borderColor = '#48bb78'; }
+        else { priceInput.value = ''; priceInput.style.borderColor = '#ddd'; }
+    }
+
+    function addOrderRow() {
+        var div = document.createElement('div');
+        div.className = 'order-row';
+        div.innerHTML = '<input type="number" class="prod-id" placeholder="Product ID" onchange="lookupPrice(this)"><input type="number" class="prod-qty" placeholder="Qty" value="1" min="1"><input type="number" class="prod-price" placeholder="Price" value="0" step="0.01" min="0">';
+        document.getElementById('order-items').appendChild(div);
+    }
+
+    function submitOrder() {
+        var userId = document.getElementById('order-user').value || 'john_doe';
+        var items = [], totalAmount = 0;
+        document.querySelectorAll('.order-row').forEach(function(row) {
+            var id = row.querySelector('.prod-id').value, qty = row.querySelector('.prod-qty').value, price = row.querySelector('.prod-price').value;
+            if (id && qty && price) { items.push({product_id: parseInt(id), quantity: parseInt(qty), price: parseFloat(price)}); totalAmount += parseFloat(price) * parseInt(qty); }
+        });
+        if (!items.length) return alert('Add at least one item');
+        fetch('/api/orders/orders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: userId, items: items, total_amount: parseFloat(totalAmount.toFixed(2))}) })
             .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
-            .then(function(result) {
-                if (result.ok) { 
-                    alert('Order created! ID: ' + result.data.order_id + '\nTotal: $' + totalAmount.toFixed(2)); 
-                    loadOrders(); 
-                } else {
-                    alert('Error: ' + JSON.stringify(result.data));
-                }
-            })
+            .then(function(result) { if (result.ok) { alert('Order created! ID: ' + result.data.order_id + '\nTotal: $' + totalAmount.toFixed(2)); loadOrders(); } else { alert('Error: ' + JSON.stringify(result.data)); } })
             .catch(function(e) { alert('Failed: ' + e.message); });
-        }
+    }
 
-        function loadOrders() {
-            var div = document.getElementById('orders-list');
-            div.innerHTML = 'Loading...';
-            fetch('/api/orders/orders')
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.orders && d.orders.length > 0) {
-                        div.innerHTML = d.orders.map(function(o) {
-                            return '<div class="card"><p><strong>Order #' + o.id + '</strong></p><p>User: ' + o.user_id + '</p><p>Status: <span class="' + (o.status==='completed'?'green':'') + '">' + o.status + '</span></p><p>Total: $' + parseFloat(o.total_amount).toFixed(2) + '</p><p><small>' + new Date(o.created_at).toLocaleString() + '</small></p></div>';
-                        }).join('');
-                    } else {
-                        div.innerHTML = '<p>No orders</p>';
-                    }
-                })
-                .catch(function(e) { div.innerHTML = '<p class="red">Error: ' + e.message + '</p>'; });
-        }
+    function loadOrders() {
+        var div = document.getElementById('orders-list');
+        fetch('/api/orders/orders')
+            .then(function(r) { return r.json(); })
+            .then(function(d) { div.innerHTML = (d.orders && d.orders.length) ? d.orders.map(function(o) { return '<div class="card"><p><strong>Order #' + o.id + '</strong></p><p>User: ' + o.user_id + '</p><p>Status: ' + o.status + '</p><p>Total: $' + parseFloat(o.total_amount).toFixed(2) + '</p></div>'; }).join('') : '<p>No orders</p>'; })
+            .catch(function(e) { div.innerHTML = '<p class="red">Error: ' + e.message + '</p>'; });
+    }
 
-        function startChat() {
-            var name = document.getElementById('chat-name').value || 'User';
-            var ws = new WebSocket('ws://localhost/ws/' + name);
-            window.wsConn = ws;
-            
-            ws.onopen = function() {
-                addChatMsg('Connected as ' + name, true);
-            };
-            
-            ws.onmessage = function(e) {
-                var d = JSON.parse(e.data);
-                if (d.type === 'system') {
-                    addChatMsg(d.message, true);
-                } else if (d.username) {
-                    addChatMsg(d.username + ': ' + d.message, false);
-                }
-            };
-            
-            ws.onclose = function() {
-                addChatMsg('Disconnected', true);
-                window.wsConn = null;
-            };
-        }
+    function startChat() {
+        var name = document.getElementById('chat-name').value || 'User';
+        window.wsConn = new WebSocket('ws://localhost/ws/' + name);
+        window.wsConn.onopen = function() { addChatMsg('Connected as ' + name, true); };
+        window.wsConn.onmessage = function(e) { var d = JSON.parse(e.data); addChatMsg(d.type === 'system' ? d.message : (d.username ? d.username + ': ' + d.message : d.message), d.type === 'system'); };
+        window.wsConn.onclose = function() { addChatMsg('Disconnected', true); window.wsConn = null; };
+    }
 
-        function addChatMsg(msg, isSystem) {
-            var div = document.getElementById('chat-messages');
-            var p = document.createElement('p');
-            if (isSystem) { p.style.color = '#667eea'; p.style.fontStyle = 'italic'; }
-            p.textContent = msg;
-            div.appendChild(p);
-            div.scrollTop = div.scrollHeight;
-        }
+    function addChatMsg(msg, isSystem) {
+        var p = document.createElement('p'); if (isSystem) { p.style.color = '#667eea'; p.style.fontStyle = 'italic'; }
+        p.textContent = msg; var div = document.getElementById('chat-messages'); div.appendChild(p); div.scrollTop = div.scrollHeight;
+    }
 
-        function sendChat() {
-            var msg = document.getElementById('chat-msg').value.trim();
-            if (msg && window.wsConn) {
-                window.wsConn.send(msg);
-                document.getElementById('chat-msg').value = '';
-            }
-        }
+    function sendChat() { var msg = document.getElementById('chat-msg').value.trim(); if (msg && window.wsConn) { window.wsConn.send(msg); document.getElementById('chat-msg').value = ''; } }
 
-        function loadStatus() {
-            var div = document.getElementById('status-list');
-            div.innerHTML = 'Loading...';
-            var services = [
-                {id: 'auth', name: 'Auth Service'},
-                {id: 'products', name: 'Product Service'},
-                {id: 'orders', name: 'Order Service'},
-                {id: 'users', name: 'User Service'},
-                {id: 'chat', name: 'Chat Service'}
-            ];
-            var promises = services.map(function(s) {
-                return fetch('/api/' + s.id + '/health')
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
-                        return '<div class="card"><h3>' + s.name + '</h3><p>Status: <span class="' + (d.status==='healthy'?'green':'red') + '">' + d.status.toUpperCase() + '</span></p><p>DB: ' + (d.database||'N/A') + '</p></div>';
-                    })
-                    .catch(function() {
-                        return '<div class="card"><h3>' + s.name + '</h3><p class="red">DOWN</p></div>';
-                    });
-            });
-            Promise.all(promises).then(function(results) {
-                div.innerHTML = results.join('');
-            });
-        }
+    function loadStatus() {
+        var div = document.getElementById('status-list');
+        var services = [{id:'auth',name:'Auth Service'},{id:'products',name:'Product Service'},{id:'orders',name:'Order Service'},{id:'users',name:'User Service'},{id:'chat',name:'Chat Service'}];
+        Promise.all(services.map(function(s) {
+            return fetch('/api/' + s.id + '/health').then(function(r) { return r.json(); }).then(function(d) { return '<div class="card"><h3>' + s.name + '</h3><p>Status: <span class="' + (d.status==='healthy'?'green':'red') + '">' + d.status.toUpperCase() + '</span></p><p>DB: ' + (d.database||'N/A') + '</p></div>'; }).catch(function() { return '<div class="card"><h3>' + s.name + '</h3><p class="red">DOWN</p></div>'; });
+        })).then(function(results) { div.innerHTML = results.join(''); });
+    }
 
-        loadProducts();
-    </script>
+    loadProducts();
+</script>
 </body>
 </html>
