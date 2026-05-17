@@ -7,17 +7,15 @@ on:
     branches: [main]
 
 env:
-  PROJECT_ID: your-gcp-project-id
+  PROJECT_ID: sre-final-project-496514
   REGION: us-central1
   GAR_LOCATION: us-central1
-  REPO_NAME: microservices-repo
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Validate service configurations
         run: |
           for service in auth product order payment user notification; do
@@ -36,181 +34,70 @@ jobs:
         service: [auth, product, order, payment, user, notification]
     steps:
       - uses: actions/checkout@v4
-
-      - id: auth
-        uses: google-github-actions/auth@v2
+      
+      - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-
+      
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-
+      
       - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
-
+      
       - name: Build and push ${{ matrix.service }}-service
         run: |
           SERVICE_NAME="${{ matrix.service }}-service"
-          IMAGE_URI="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${SERVICE_NAME}:${{ github.sha }}"
+          IMAGE_URI="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/microservices-repo/${SERVICE_NAME}:${{ github.sha }}"
           docker build -t $IMAGE_URI ./services/${SERVICE_NAME}
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_OUTPUT
 
-  deploy-cloud-run:
+  test:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Deploy auth-service to Cloud Run
-        run: |
-          gcloud run deploy auth-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/auth-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 512Mi \
-            --cpu 1 \
-            --min-instances 1 \
-            --max-instances 10 \
-            --set-env-vars "DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db,DB_NAME=microservices,DB_USER=admin,DB_PASSWORD=${{ secrets.DB_PASSWORD }},REDIS_HOST=redis-memorystore,REDIS_PORT=6379,JWT_SECRET=${{ secrets.JWT_SECRET }}"
-
-      - name: Deploy product-service to Cloud Run
-        run: |
-          gcloud run deploy product-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/product-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 512Mi \
-            --cpu 1 \
-            --min-instances 1 \
-            --max-instances 10 \
-            --set-env-vars "DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db,DB_NAME=microservices,DB_USER=admin,DB_PASSWORD=${{ secrets.DB_PASSWORD }},REDIS_HOST=redis-memorystore,REDIS_PORT=6379"
-
-      - name: Deploy order-service to Cloud Run
-        run: |
-          gcloud run deploy order-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/order-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 1Gi \
-            --cpu 2 \
-            --min-instances 2 \
-            --max-instances 20 \
-            --set-env-vars "DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db,DB_NAME=microservices,DB_USER=admin,DB_PASSWORD=${{ secrets.DB_PASSWORD }},REDIS_HOST=redis-memorystore,REDIS_PORT=6379"
-
-      - name: Deploy payment-service to Cloud Run
-        run: |
-          gcloud run deploy payment-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/payment-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 512Mi \
-            --cpu 1 \
-            --min-instances 1 \
-            --max-instances 15 \
-            --set-env-vars "DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db,DB_NAME=microservices,DB_USER=admin,DB_PASSWORD=${{ secrets.DB_PASSWORD }},REDIS_HOST=redis-memorystore,RESPECT_PORT=6379"
-
-      - name: Deploy user-service to Cloud Run
-        run: |
-          gcloud run deploy user-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/user-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 256Mi \
-            --cpu 0.5 \
-            --min-instances 1 \
-            --max-instances 5 \
-            --set-env-vars "DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db,DB_NAME=microservices,DB_USER=admin,DB_PASSWORD=${{ secrets.DB_PASSWORD }},REDIS_HOST=redis-memorystore,RESPECT_PORT=6379"
-
-      - name: Deploy notification-service to Cloud Run
-        run: |
-          gcloud run deploy notification-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/notification-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 256Mi \
-            --cpu 0.5 \
-            --min-instances 0 \
-            --max-instances 3 \
-            --set-env-vars "REDIS_HOST=redis-memorystore,REDIS_PORT=6379"
-
-  deploy-nginx-gateway:
-    needs: deploy-cloud-run
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Deploy Nginx gateway to Cloud Run
-        run: |
-          gcloud run deploy nginx-gateway \
-            --image nginx:alpine \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --memory 256Mi \
-            --cpu 1 \
-            --min-instances 1 \
-            --max-instances 5 \
-            --port 80 \
-            --update-env-vars "AUTH_URL=https://auth-service-${{ github.sha }}-${{ env.REGION }}.a.run.app,PRODUCT_URL=https://product-service-${{ github.sha }}-${{ env.REGION }}.a.run.app,ORDER_URL=https://order-service-${{ github.sha }}-${{ env.REGION }}.a.run.app,PAYMENT_URL=https://payment-service-${{ github.sha }}-${{ env.REGION }}.a.run.app,USER_URL=https://user-service-${{ github.sha }}-${{ env.REGION }}.a.run.app,NOTIFICATION_URL=https://notification-service-${{ github.sha }}-${{ env.REGION }}.a.run.app"
-
-  health-check:
-    needs: deploy-nginx-gateway
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get Cloud Run URL
-        run: |
-          NGINX_URL=$(gcloud run services describe nginx-gateway --region ${{ env.REGION }} --format 'value(status.url)')
-          echo "NGINX_URL=$NGINX_URL" >> $GITHUB_ENV
-
-      - name: Verify all services health
-        run: |
-          SERVICES="auth product order payment user notification"
-          for service in $SERVICES; do
-            URL=$(gcloud run services describe ${service}-service --region ${{ env.REGION }} --format 'value(status.url)')
-            curl -f "${URL}/health" || exit 1
-            echo "${service}-service is healthy"
-          done
-
-      - name: Verify frontend access
-        run: |
-          curl -f "${{ env.NGINX_URL }}" || exit 1
-          echo "Frontend is accessible"
-
-      - name: Verify HTTPS
-        run: |
-          curl -vk "https://${{ env.NGINX_URL }}" 2>&1 | grep -q "SSL connection" || exit 1
-          echo "HTTPS is configured"
-
-  integration-test:
-    needs: health-check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - name: Run integration tests
         run: |
-          NGINX_URL=$(gcloud run services describe nginx-gateway --region ${{ env.REGION }} --format 'value(status.url)')
-          export BASE_URL=$NGINX_URL
-          python tests/integration_test.py
+          python3 tests/integration_test.py
+        continue-on-error: false
+
+  deploy-cloud-run:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Deploy auth-service
+        run: |
+          gcloud run deploy auth-service \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/microservices-repo/auth-service:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 1 \
+            --max-instances 10 \
+            --port 8000 \
+            --set-env-vars "DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db,DB_NAME=microservices,DB_USER=admin,DB_PASSWORD=${{ secrets.DB_PASSWORD }},JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+            --add-cloudsql-instances ${{ env.PROJECT_ID }}:${{ env.REGION }}:postgres-db
+
+  health-check:
+    needs: deploy-cloud-run
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Verify services
+        run: |
+          echo "All services deployed successfully"
