@@ -1,0 +1,67 @@
+---
+- name: GCP Infrastructure Setup with Ansible
+  hosts: localhost
+  connection: local
+  vars:
+    gcp_project: "{{ lookup('env', 'GCP_PROJECT') }}"
+    gcp_region: "us-central1"
+  tasks:
+    - name: Create Artifact Registry repository
+      gcp_artifact_registry_repository:
+        name: microservices-repo
+        format: DOCKER
+        location: "{{ gcp_region }}"
+        project: "{{ gcp_project }}"
+        state: present
+
+    - name: Create Cloud SQL PostgreSQL instance
+      gcp_sql_instance:
+        name: postgres-db
+        database_version: POSTGRES_15
+        region: "{{ gcp_region }}"
+        settings:
+          tier: db-custom-2-7680
+          availability_type: REGIONAL
+          backup_configuration:
+            enabled: true
+            start_time: "03:00"
+          ip_configuration:
+            ipv4_enabled: true
+            authorized_networks:
+              - name: cloud-run
+                value: 0.0.0.0/0
+        project: "{{ gcp_project }}"
+        state: present
+
+    - name: Create database
+      gcp_sql_database:
+        name: microservices
+        instance: postgres-db
+        project: "{{ gcp_project }}"
+        state: present
+
+    - name: Create Redis Memorystore instance
+      gcp_redis_instance:
+        name: redis-memorystore
+        tier: BASIC
+        memory_size_gb: 1
+        region: "{{ gcp_region }}"
+        project: "{{ gcp_project }}"
+        state: present
+
+    - name: Deploy all services to Cloud Run
+      command: |
+        gcloud run deploy {{ item.name }} \
+          --image {{ item.image }} \
+          --platform managed \
+          --region {{ gcp_region }} \
+          --allow-unauthenticated \
+          --memory {{ item.memory }} \
+          --cpu {{ item.cpu }}
+      loop:
+        - {name: auth-service, image: "{{ gcp_region }}-docker.pkg.dev/{{ gcp_project }}/microservices-repo/auth-service:latest", memory: 512Mi, cpu: 1}
+        - {name: product-service, image: "{{ gcp_region }}-docker.pkg.dev/{{ gcp_project }}/microservices-repo/product-service:latest", memory: 512Mi, cpu: 1}
+        - {name: order-service, image: "{{ gcp_region }}-docker.pkg.dev/{{ gcp_project }}/microservices-repo/order-service:latest", memory: 1Gi, cpu: 2}
+        - {name: payment-service, image: "{{ gcp_region }}-docker.pkg.dev/{{ gcp_project }}/microservices-repo/payment-service:latest", memory: 512Mi, cpu: 1}
+        - {name: user-service, image: "{{ gcp_region }}-docker.pkg.dev/{{ gcp_project }}/microservices-repo/user-service:latest", memory: 256Mi, cpu: 0.5}
+        - {name: notification-service, image: "{{ gcp_region }}-docker.pkg.dev/{{ gcp_project }}/microservices-repo/notification-service:latest", memory: 256Mi, cpu: 0.5}

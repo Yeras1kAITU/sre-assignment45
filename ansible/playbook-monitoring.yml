@@ -1,0 +1,27 @@
+---
+- name: Configure Monitoring Stack
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure Prometheus config directory exists
+      file:
+        path: /opt/microservices/monitoring/prometheus
+        state: directory
+
+    - name: Copy Prometheus configuration
+      copy:
+        src: ../monitoring/prometheus/
+        dest: /opt/microservices/monitoring/prometheus/
+      tags: monitoring
+
+    - name: Copy Grafana configuration
+      copy:
+        src: ../monitoring/grafana/
+        dest: /opt/microservices/monitoring/grafana/
+      tags: monitoring
+
+    - name: Restart monitoring services
+      command: docker-compose up -d prometheus grafana
+      args:
+        chdir: /opt/microservices
+      tags: monitoring

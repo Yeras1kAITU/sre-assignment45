@@ -1,0 +1,175 @@
+stages:
+  - validate
+  - build
+  - test
+  - deploy
+  - health-check
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2375
+
+# ============================================
+# STAGE 1: VALIDATE
+# ============================================
+validate-terraform:
+  stage: validate
+  image: hashicorp/terraform:latest
+  script:
+    - cd terraform
+    - terraform init
+    - terraform validate
+    - terraform fmt -check
+  only:
+    - main
+    - develop
+
+validate-ansible:
+  stage: validate
+  image: python:3.11-slim
+  script:
+    - pip install ansible
+    - cd ansible
+    - ansible-playbook playbook-deploy.yml --syntax-check
+    - ansible-playbook playbook-monitoring.yml --syntax-check
+  only:
+    - main
+    - develop
+
+validate-kubernetes:
+  stage: validate
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl apply -f kubernetes/ --dry-run=client
+  only:
+    - main
+    - develop
+
+# ============================================
+# STAGE 2: BUILD
+# ============================================
+build-auth:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest ./services/auth-service
+    - docker push $CI_REGISTRY_IMAGE/auth-service:latest
+  only:
+    - main
+
+build-product:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/product-service:latest ./services/product-service
+    - docker push $CI_REGISTRY_IMAGE/product-service:latest
+  only:
+    - main
+
+build-order:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/order-service:latest ./services/order-service
+    - docker push $CI_REGISTRY_IMAGE/order-service:latest
+  only:
+    - main
+
+build-payment:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/payment-service:latest ./services/payment-service
+    - docker push $CI_REGISTRY_IMAGE/payment-service:latest
+  only:
+    - main
+
+build-user:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/user-service:latest ./services/user-service
+    - docker push $CI_REGISTRY_IMAGE/user-service:latest
+  only:
+    - main
+
+build-chat:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/chat-service:latest ./services/chat-service
+    - docker push $CI_REGISTRY_IMAGE/chat-service:latest
+  only:
+    - main
+
+# ============================================
+# STAGE 3: TEST
+# ============================================
+unit-test:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - pip install pytest fastapi httpx
+    - cd tests
+    - pytest --tb=short -v
+  only:
+    - main
+    - develop
+
+integration-test:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - pip install requests
+    - python tests/integration_test.py
+  only:
+    - main
+
+# ============================================
+# STAGE 4: DEPLOY TO KUBERNETES
+# ============================================
+deploy-kubernetes:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl apply -f kubernetes/namespace.yaml
+    - kubectl apply -f kubernetes/
+    - kubectl rollout status deployment/auth-service -n microservices --timeout=120s
+    - kubectl rollout status deployment/product-service -n microservices --timeout=120s
+    - kubectl rollout status deployment/order-service -n microservices --timeout=120s
+    - kubectl rollout status deployment/payment-service -n microservices --timeout=120s
+    - kubectl rollout status deployment/nginx -n microservices --timeout=120s
+  only:
+    - main
+  when: manual
+
+# ============================================
+# STAGE 5: HEALTH CHECK
+# ============================================
+health-check:
+  stage: health-check
+  image: curlimages/curl:latest
+  script:
+    - curl -f http://auth-service.microservices:8000/health || exit 1
+    - curl -f http://product-service.microservices:8001/health || exit 1
+    - curl -f http://order-service.microservices:8002/health || exit 1
+    - curl -f http://user-service.microservices:8003/health || exit 1
+    - curl -f http://chat-service.microservices:8004/health || exit 1
+    - curl -f http://payment-service.microservices:8005/health || exit 1
+    - echo "ALL SERVICES HEALTHY"
+  only:
+    - main
+  needs:
+    - deploy-kubernetes

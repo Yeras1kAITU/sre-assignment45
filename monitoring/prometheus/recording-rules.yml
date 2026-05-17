@@ -1,0 +1,33 @@
+groups:
+  - name: slo_recording_rules
+    interval: 30s
+    rules:
+      - record: slo:availability:ratio
+        expr: |
+          sum(rate(http_requests_total{status=~"2.."}[5m])) 
+          / 
+          sum(rate(http_requests_total[5m]))
+
+      - record: slo:error_rate:ratio
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) 
+          / 
+          sum(rate(http_requests_total[5m]))
+
+      - record: slo:latency_p95:seconds
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job)
+          )
+
+      - record: slo:availability:service
+        expr: |
+          rate(http_requests_total{status=~"2.."}[5m]) 
+          / 
+          rate(http_requests_total[5m])
+
+      - record: slo:request_success_rate
+        expr: |
+          sum(rate(http_requests_total{status!~"5.."}[5m])) 
+          / 
+          sum(rate(http_requests_total[5m]))

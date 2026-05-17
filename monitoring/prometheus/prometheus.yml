@@ -29,3 +29,7 @@ scrape_configs:
   - job_name: 'chat-service'
     static_configs:
       - targets: ['chat-service:8004']
+
+  - job_name: 'payment-service'
+    static_configs:
+      - targets: ['payment-service:8005']

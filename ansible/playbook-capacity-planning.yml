@@ -1,0 +1,79 @@
+---
+- name: Capacity Planning Assessment
+  hosts: all
+  become: yes
+  tasks:
+    - name: Gather system resource usage
+      command: top -bn1 | grep "Cpu(s)"
+      register: cpu_usage
+      tags: collect
+
+    - name: Gather memory usage
+      command: free -h
+      register: memory_usage
+      tags: collect
+
+    - name: Gather disk usage
+      command: df -h
+      register: disk_usage
+      tags: collect
+
+    - name: Check Docker container resource usage
+      command: docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+      register: container_stats
+      tags: collect
+
+    - name: Calculate total CPU cores
+      command: nproc
+      register: cpu_cores
+      tags: analyze
+
+    - name: Calculate total memory
+      command: free -b | grep Mem | awk '{print $2}'
+      register: total_memory
+      tags: analyze
+
+    - name: Generate capacity report
+      copy:
+        content: |
+          === Capacity Planning Report ===
+          Date: {{ ansible_date_time.iso8601 }}
+          
+          System Resources:
+          - CPU Cores: {{ cpu_cores.stdout }}
+          - Total Memory: {{ total_memory.stdout | int // (1024*1024*1024) }} GB
+          - CPU Usage: {{ cpu_usage.stdout }}
+          - Memory Usage: {{ memory_usage.stdout }}
+          - Disk Usage: {{ disk_usage.stdout }}
+          
+          Container Resource Usage:
+          {{ container_stats.stdout }}
+          
+          Recommendations:
+          - Order Service requires 2 replicas minimum
+          - Database requires 2GB memory minimum
+          - Add 50% capacity for peak hours
+        dest: /tmp/capacity-report-{{ ansible_date_time.date }}.txt
+      tags: report
+
+    - name: Check if horizontal scaling needed
+      set_fact:
+        scale_order_service: "{{ container_stats.stdout | regex_search('order-service.*[6-9][0-9]%') is not none }}"
+      tags: recommend
+
+    - name: Display scaling recommendation
+      debug:
+        msg: "Scale Order Service to 3 replicas due to high CPU usage"
+      when: scale_order_service | bool
+      tags: recommend
+
+    - name: Check database memory pressure
+      set_fact:
+        upgrade_db: "{{ container_stats.stdout | regex_search('postgres.*[1-9][0-9][0-9]MiB') is not none }}"
+      tags: recommend
+
+    - name: Display database upgrade recommendation
+      debug:
+        msg: "Upgrade PostgreSQL to larger instance type due to memory pressure"
+      when: upgrade_db | bool
+      tags: recommend

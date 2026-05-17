@@ -1,0 +1,49 @@
+# SLI/SLO Definitions for Microservices System
+
+service_level_indicators:
+  availability:
+    description: "Percentage of time service is available"
+    formula: "up{job='<service>'} == 1"
+    
+  latency:
+    description: "95th percentile response time"
+    formula: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job='<service>'}[5m]))"
+    
+  error_rate:
+    description: "Percentage of requests returning 5xx errors"
+    formula: "rate(http_requests_total{job='<service>', status=~'5..'}[5m]) / rate(http_requests_total{job='<service>'}[5m])"
+    
+  request_success_rate:
+    description: "Percentage of successful requests"
+    formula: "rate(http_requests_total{job='<service>', status=~'2..'}[5m]) / rate(http_requests_total{job='<service>'}[5m])"
+
+service_level_objectives:
+  auth-service:
+    availability: ">= 99.9%"
+    latency_p95: "<= 200ms"
+    error_rate: "<= 0.1%"
+    
+  product-service:
+    availability: ">= 99.9%"
+    latency_p95: "<= 150ms"
+    error_rate: "<= 0.1%"
+    
+  order-service:
+    availability: ">= 99.5%"
+    latency_p95: "<= 300ms"
+    error_rate: "<= 1%"
+    
+  payment-service:
+    availability: ">= 99.99%"
+    latency_p95: "<= 500ms"
+    error_rate: "<= 0.01%"
+    
+  user-service:
+    availability: ">= 99.9%"
+    latency_p95: "<= 100ms"
+    error_rate: "<= 0.1%"
+    
+  chat-service:
+    availability: ">= 99%"
+    latency_p95: "<= 200ms"
+    error_rate: "<= 1%"

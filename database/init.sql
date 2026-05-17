@@ -80,3 +80,22 @@ INSERT INTO orders (user_id, items, total_amount, status) VALUES
                                                                   'pending'
                                                               )
 ON CONFLICT DO NOTHING;
+-- Payment Service table
+CREATE TABLE IF NOT EXISTS payments (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method VARCHAR(50) DEFAULT 'credit_card',
+    status VARCHAR(50) DEFAULT 'pending',
+    transaction_id VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add SLI tracking table
+CREATE TABLE IF NOT EXISTS sli_metrics (
+    id SERIAL PRIMARY KEY,
+    service_name VARCHAR(100),
+    metric_name VARCHAR(100),
+    metric_value DECIMAL(10, 4),
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

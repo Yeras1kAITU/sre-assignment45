@@ -1,0 +1,53 @@
+---
+- name: Deploy Microservices Application
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      tags: docker
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+      tags: docker
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      tags: docker
+
+    - name: Copy application files
+      copy:
+        src: ../services/
+        dest: /opt/microservices/services/
+      tags: deploy
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: ../docker-compose.yml
+        dest: /opt/microservices/docker-compose.yml
+      tags: deploy
+
+    - name: Deploy with Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: /opt/microservices
+      tags: deploy
+
+    - name: Verify services are running
+      command: docker-compose ps
+      args:
+        chdir: /opt/microservices
+      register: ps_output
+      tags: verify
+
+    - name: Display service status
+      debug:
+        var: ps_output.stdout_lines
+      tags: verify

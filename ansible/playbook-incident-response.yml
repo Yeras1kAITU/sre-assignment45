@@ -1,0 +1,62 @@
+---
+- name: Incident Response Playbook
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check Order Service status
+      command: docker ps --filter name=order-service --format "{{.Status}}"
+      register: order_status
+      ignore_errors: yes
+      tags: diagnose
+
+    - name: Display Order Service status
+      debug:
+        msg: "Order Service Status: {{ order_status.stdout }}"
+      tags: diagnose
+
+    - name: Check Order Service logs for errors
+      command: docker logs order-service --tail 50
+      register: order_logs
+      ignore_errors: yes
+      tags: diagnose
+
+    - name: Check database connectivity from Order Service
+      command: docker exec order-service python -c "import psycopg2; psycopg2.connect(host='postgres', database='microservices', user='admin', password='admin123')"
+      register: db_test
+      ignore_errors: yes
+      tags: diagnose
+
+    - name: Restart Order Service if unhealthy
+      command: docker restart order-service
+      when: order_status.stdout is not search("healthy")
+      tags: recover
+
+    - name: Verify database configuration
+      command: docker exec order-service env | grep DB_HOST
+      register: db_config
+      tags: recover
+
+    - name: Correct database host if incorrect
+      command: docker exec order-service sh -c "echo 'DB_HOST=postgres' >> /etc/environment"
+      when: db_config.stdout is not search("postgres")
+      tags: recover
+
+    - name: Wait for Order Service recovery
+      wait_for:
+        host: localhost
+        port: 8002
+        delay: 5
+        timeout: 30
+      tags: verify
+
+    - name: Test Order Service health endpoint
+      uri:
+        url: http://localhost:8002/health
+        return_content: yes
+      register: health_check
+      tags: verify
+
+    - name: Display recovery status
+      debug:
+        msg: "Order Service recovered: {{ health_check.content }}"
+      tags: verify

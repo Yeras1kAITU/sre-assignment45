@@ -5,190 +5,294 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Microservices Platform</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: #667eea; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        h1 { color: #667eea; margin: 0 0 15px 0; }
-        nav { display: flex; gap: 10px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #667eea; margin-bottom: 15px; }
+        nav { display: flex; gap: 10px; flex-wrap: wrap; }
         nav button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; background: #e0e0e0; font-size: 14px; }
         nav button:hover, nav button.active { background: #667eea; color: white; }
-        section { background: white; padding: 25px; border-radius: 10px; display: none; }
+        section { background: white; padding: 30px; border-radius: 10px; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         section.active { display: block; }
-        h2 { color: #667eea; margin-top: 0; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
-        .card { background: #f5f5f5; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
-        .card h3 { margin: 0 0 8px 0; color: #333; }
-        .card p { margin: 4px 0; color: #555; }
-        input { padding: 8px 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; margin: 5px; }
+        h2 { color: #667eea; margin-top: 0; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
+        .card h3 { margin-bottom: 10px; color: #333; }
+        .card p { margin: 5px 0; color: #666; }
+        input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; margin: 5px 0; }
         .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin: 5px; }
         .btn-primary { background: #667eea; color: white; }
         .btn-secondary { background: #ccc; color: #333; }
         .green { color: green; font-weight: bold; }
         .red { color: red; font-weight: bold; }
-        .chat-box { border: 2px solid #ddd; border-radius: 8px; height: 350px; display: flex; flex-direction: column; }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 15px; }
-        #chat-messages p { margin: 5px 0; padding: 8px; background: white; border-radius: 5px; }
-        .chat-input-area { display: flex; padding: 10px; border-top: 2px solid #ddd; gap: 5px; }
+        .chat-box { border: 2px solid #e0e0e0; border-radius: 10px; overflow: hidden; }
+        #chat-messages { height: 400px; overflow-y: auto; padding: 20px; background: #f8f9fa; }
+        #chat-messages p { margin: 10px 0; padding: 10px; background: white; border-radius: 8px; }
+        .chat-input-area { display: flex; gap: 10px; padding: 15px; background: white; border-top: 2px solid #e0e0e0; }
         .chat-input-area input:first-child { width: 100px; }
         .chat-input-area input:nth-child(2) { flex: 1; }
-        .order-row { display: flex; gap: 10px; margin: 8px 0; align-items: center; }
+        .order-row { display: flex; gap: 10px; margin: 10px 0; }
         .order-row input { flex: 1; }
-        .order-row .prod-id { flex: 1; }
-        .order-row .prod-qty { flex: 0.5; }
-        .order-row .prod-price { flex: 1; }
-        .order-header { display: flex; gap: 10px; font-weight: bold; color: #667eea; padding: 5px; font-size: 13px; }
-        .order-header span:first-child { flex: 1; }
-        .order-header span:nth-child(2) { flex: 0.5; }
-        .order-header span:nth-child(3) { flex: 1; }
+        .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .status-healthy { background: #48bb78; }
+        .status-degraded { background: #ed8936; }
+        .status-down { background: #f56565; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .chat-input-area { flex-direction: column; } nav { flex-direction: column; } }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <h1>Microservices E-Commerce Platform</h1>
+        <h1>Microservices SRE Platform</h1>
         <nav>
-            <button class="active" onclick="showTab('products')">Products</button>
-            <button onclick="showTab('orders')">Orders</button>
-            <button onclick="showTab('chat')">Live Chat</button>
-            <button onclick="showTab('status')">System Status</button>
+            <button class="active" onclick="showSection('products')">Products</button>
+            <button onclick="showSection('orders')">Orders</button>
+            <button onclick="showSection('chat')">Live Chat</button>
+            <button onclick="showSection('status')">System Status</button>
         </nav>
     </header>
 
-    <section id="tab-products" class="active">
-        <h2>Products Catalog</h2>
-        <div id="products-list" class="grid">Loading...</div>
-    </section>
+    <main>
+        <section id="products-section" class="active">
+            <h2>Products Catalog</h2>
+            <div id="products-list" class="grid">Loading products...</div>
+        </section>
 
-    <section id="tab-orders">
-        <h2>Create Order</h2>
-        <div class="card" style="margin-bottom:15px;">
-            <p><strong>User ID:</strong> <input type="text" id="order-user" value="john_doe" style="width:200px;"></p>
-            <div class="order-header">
-                <span>Product ID</span>
-                <span>Qty</span>
-                <span>Price ($)</span>
+        <section id="orders-section">
+            <h2>Create Order</h2>
+            <div class="card">
+                <p><strong>User ID:</strong> <input type="text" id="user-id" value="john_doe" style="width:200px;"></p>
+                <div id="order-items">
+                    <div class="order-row">
+                        <input type="number" class="product-id" placeholder="Product ID" value="1">
+                        <input type="number" class="quantity" placeholder="Quantity" value="1" min="1">
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="addOrderItem()">Add Item</button>
+                <button class="btn btn-primary" onclick="submitOrder()">Place Order</button>
             </div>
-            <div id="order-items">
-                <div class="order-row">
-                    <input type="number" class="prod-id" placeholder="Product ID" value="1" onchange="lookupPrice(this)">
-                    <input type="number" class="prod-qty" placeholder="Qty" value="1" min="1">
-                    <input type="number" class="prod-price" placeholder="Price" value="0" step="0.01" min="0">
+            <h2>Order History</h2>
+            <div id="orders-list">Loading orders...</div>
+        </section>
+
+        <section id="chat-section">
+            <h2>Live Chat</h2>
+            <div class="chat-box">
+                <div id="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-username" placeholder="Username" value="Anonymous">
+                    <input type="text" id="chat-message" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
                 </div>
             </div>
-            <button class="btn btn-secondary" onclick="addOrderRow()">+ Add Item</button>
-            <button class="btn btn-primary" onclick="submitOrder()">Place Order</button>
-        </div>
-        <h2>Order History</h2>
-        <div id="orders-list">Loading...</div>
-    </section>
+        </section>
 
-    <section id="tab-chat">
-        <h2>Live Chat</h2>
-        <div class="chat-box">
-            <div id="chat-messages"></div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-name" value="User" placeholder="Name">
-                <input type="text" id="chat-msg" placeholder="Type message..." onkeypress="if(event.key==='Enter')sendChat()">
-                <button class="btn btn-primary" onclick="sendChat()">Send</button>
-            </div>
-        </div>
-    </section>
-
-    <section id="tab-status">
-        <h2>System Health</h2>
-        <div id="status-list" class="grid">Loading...</div>
-        <p style="margin-top:20px;">
-            <a href="http://localhost:9090" target="_blank">Prometheus</a> |
-            <a href="http://localhost:3000" target="_blank">Grafana</a>
-        </p>
-    </section>
+        <section id="status-section">
+            <h2>System Health Dashboard</h2>
+            <div id="services-status" class="grid">Loading status...</div>
+            <p style="margin-top:20px;">
+                <a href="/prometheus" target="_blank">Prometheus</a> |
+                <a href="/grafana" target="_blank">Grafana</a>
+            </p>
+        </section>
+    </main>
 </div>
 
 <script>
-    var productPrices = {};
+    const API_URL = window.location.origin;
+    let ws = null;
 
-    function showTab(name) {
-        document.querySelectorAll('section').forEach(function(s) { s.classList.remove('active'); });
-        document.getElementById('tab-' + name).classList.add('active');
-        document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
+    async function showSection(section) {
+        document.querySelectorAll('main section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`${section}-section`).classList.add('active');
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
-        if (name === 'products') loadProducts();
-        if (name === 'orders') loadOrders();
-        if (name === 'chat' && !window.wsConn) startChat();
-        if (name === 'status') loadStatus();
+
+        if (section === 'products') await loadProducts();
+        if (section === 'orders') await loadOrders();
+        if (section === 'chat') initChat();
+        if (section === 'status') await loadSystemStatus();
     }
 
-    function loadProducts() {
-        var div = document.getElementById('products-list');
-        div.innerHTML = 'Loading...';
-        fetch('/api/products/products')
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d.products) { d.products.forEach(function(p) { productPrices[p.id] = p.price; }); }
-                div.innerHTML = (d.products && d.products.length) ? d.products.map(function(p) {
-                    return '<div class="card"><h3>' + p.name + '</h3><p>' + (p.description||'') + '</p><p><strong>$' + parseFloat(p.price).toFixed(2) + '</strong></p><p>Stock: ' + p.stock + '</p><p>Category: ' + p.category + '</p></div>';
-                }).join('') : '<p class="red">No products</p>';
-            })
-            .catch(function(e) { div.innerHTML = '<p class="red">Error: ' + e.message + '</p>'; });
+    async function loadProducts() {
+        try {
+            const response = await fetch(`${API_URL}/api/products/products`);
+            const data = await response.json();
+            const container = document.getElementById('products-list');
+
+            if (data.products && data.products.length) {
+                container.innerHTML = data.products.map(p => `
+                    <div class="card">
+                        <h3>${p.name}</h3>
+                        <p>${p.description || 'No description'}</p>
+                        <p><strong>Price:</strong> $${parseFloat(p.price).toFixed(2)}</p>
+                        <p><strong>Stock:</strong> ${p.stock}</p>
+                        <p><strong>Category:</strong> ${p.category}</p>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p>No products available</p>';
+            }
+        } catch (error) {
+            document.getElementById('products-list').innerHTML = `<div class="card"><p class="red">Error: ${error.message}</p></div>`;
+        }
     }
 
-    function lookupPrice(input) {
-        var productId = parseInt(input.value);
-        var priceInput = input.parentElement.querySelector('.prod-price');
-        if (productPrices[productId]) { priceInput.value = productPrices[productId]; priceInput.style.borderColor = '#48bb78'; }
-        else { priceInput.value = ''; priceInput.style.borderColor = '#ddd'; }
-    }
-
-    function addOrderRow() {
-        var div = document.createElement('div');
+    function addOrderItem() {
+        const container = document.getElementById('order-items');
+        const div = document.createElement('div');
         div.className = 'order-row';
-        div.innerHTML = '<input type="number" class="prod-id" placeholder="Product ID" onchange="lookupPrice(this)"><input type="number" class="prod-qty" placeholder="Qty" value="1" min="1"><input type="number" class="prod-price" placeholder="Price" value="0" step="0.01" min="0">';
-        document.getElementById('order-items').appendChild(div);
+        div.innerHTML = `
+            <input type="number" class="product-id" placeholder="Product ID">
+            <input type="number" class="quantity" placeholder="Quantity" min="1">
+        `;
+        container.appendChild(div);
     }
 
-    function submitOrder() {
-        var userId = document.getElementById('order-user').value || 'john_doe';
-        var items = [], totalAmount = 0;
-        document.querySelectorAll('.order-row').forEach(function(row) {
-            var id = row.querySelector('.prod-id').value, qty = row.querySelector('.prod-qty').value, price = row.querySelector('.prod-price').value;
-            if (id && qty && price) { items.push({product_id: parseInt(id), quantity: parseInt(qty), price: parseFloat(price)}); totalAmount += parseFloat(price) * parseInt(qty); }
+    async function submitOrder() {
+        const userId = document.getElementById('user-id').value;
+        const items = [];
+        document.querySelectorAll('.order-row').forEach(row => {
+            const productId = row.querySelector('.product-id').value;
+            const quantity = row.querySelector('.quantity').value;
+            if (productId && quantity) {
+                items.push({product_id: parseInt(productId), quantity: parseInt(quantity), price: 0});
+            }
         });
-        if (!items.length) return alert('Add at least one item');
-        fetch('/api/orders/orders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: userId, items: items, total_amount: parseFloat(totalAmount.toFixed(2))}) })
-            .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
-            .then(function(result) { if (result.ok) { alert('Order created! ID: ' + result.data.order_id + '\nTotal: $' + totalAmount.toFixed(2)); loadOrders(); } else { alert('Error: ' + JSON.stringify(result.data)); } })
-            .catch(function(e) { alert('Failed: ' + e.message); });
+
+        if (!items.length) {
+            alert('Please add at least one item');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/orders/orders`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: userId, items: items, total_amount: 0})
+            });
+            const data = await response.json();
+            if (response.ok) {
+                alert(`Order created successfully! Order ID: ${data.order_id}`);
+                await loadOrders();
+            } else {
+                alert(`Error: ${data.detail || 'Unknown error'}`);
+            }
+        } catch (error) {
+            alert(`Failed to create order: ${error.message}`);
+        }
     }
 
-    function loadOrders() {
-        var div = document.getElementById('orders-list');
-        fetch('/api/orders/orders')
-            .then(function(r) { return r.json(); })
-            .then(function(d) { div.innerHTML = (d.orders && d.orders.length) ? d.orders.map(function(o) { return '<div class="card"><p><strong>Order #' + o.id + '</strong></p><p>User: ' + o.user_id + '</p><p>Status: ' + o.status + '</p><p>Total: $' + parseFloat(o.total_amount).toFixed(2) + '</p></div>'; }).join('') : '<p>No orders</p>'; })
-            .catch(function(e) { div.innerHTML = '<p class="red">Error: ' + e.message + '</p>'; });
+    async function loadOrders() {
+        try {
+            const response = await fetch(`${API_URL}/api/orders/orders`);
+            const data = await response.json();
+            const container = document.getElementById('orders-list');
+
+            if (data.orders && data.orders.length) {
+                container.innerHTML = data.orders.map(o => `
+                    <div class="card">
+                        <p><strong>Order #${o.id}</strong></p>
+                        <p>User: ${o.user_id}</p>
+                        <p>Status: ${o.status}</p>
+                        <p>Total: $${parseFloat(o.total_amount).toFixed(2)}</p>
+                        <p><small>${new Date(o.created_at).toLocaleString()}</small></p>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p>No orders found</p>';
+            }
+        } catch (error) {
+            document.getElementById('orders-list').innerHTML = `<div class="card"><p class="red">Error: ${error.message}</p></div>`;
+        }
     }
 
-    function startChat() {
-        var name = document.getElementById('chat-name').value || 'User';
-        window.wsConn = new WebSocket('ws://localhost/ws/' + name);
-        window.wsConn.onopen = function() { addChatMsg('Connected as ' + name, true); };
-        window.wsConn.onmessage = function(e) { var d = JSON.parse(e.data); addChatMsg(d.type === 'system' ? d.message : (d.username ? d.username + ': ' + d.message : d.message), d.type === 'system'); };
-        window.wsConn.onclose = function() { addChatMsg('Disconnected', true); window.wsConn = null; };
+    function initChat() {
+        if (ws && ws.readyState === WebSocket.OPEN) return;
+        const username = document.getElementById('chat-username').value || 'Anonymous';
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/${username}`);
+
+        ws.onopen = () => addSystemMessage('Connected to chat server');
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'system') addSystemMessage(data.message);
+            else if (data.type === 'message') addChatMessage(data.username, data.message);
+            else if (data.type === 'history' && data.messages) {
+                data.messages.forEach(msg => {
+                    if (msg.type === 'system') addSystemMessage(msg.message);
+                    else addChatMessage(msg.username, msg.message);
+                });
+            }
+        };
+        ws.onclose = () => addSystemMessage('Disconnected from chat server');
+        ws.onerror = () => addSystemMessage('Connection error');
     }
 
-    function addChatMsg(msg, isSystem) {
-        var p = document.createElement('p'); if (isSystem) { p.style.color = '#667eea'; p.style.fontStyle = 'italic'; }
-        p.textContent = msg; var div = document.getElementById('chat-messages'); div.appendChild(p); div.scrollTop = div.scrollHeight;
+    function addChatMessage(username, message) {
+        const container = document.getElementById('chat-messages');
+        const p = document.createElement('p');
+        p.innerHTML = `<strong>${username}:</strong> ${message}`;
+        container.appendChild(p);
+        container.scrollTop = container.scrollHeight;
     }
 
-    function sendChat() { var msg = document.getElementById('chat-msg').value.trim(); if (msg && window.wsConn) { window.wsConn.send(msg); document.getElementById('chat-msg').value = ''; } }
+    function addSystemMessage(message) {
+        const container = document.getElementById('chat-messages');
+        const p = document.createElement('p');
+        p.style.color = '#667eea';
+        p.style.fontStyle = 'italic';
+        p.textContent = `[System] ${message}`;
+        container.appendChild(p);
+        container.scrollTop = container.scrollHeight;
+    }
 
-    function loadStatus() {
-        var div = document.getElementById('status-list');
-        var services = [{id:'auth',name:'Auth Service'},{id:'products',name:'Product Service'},{id:'orders',name:'Order Service'},{id:'users',name:'User Service'},{id:'chat',name:'Chat Service'}];
-        Promise.all(services.map(function(s) {
-            return fetch('/api/' + s.id + '/health').then(function(r) { return r.json(); }).then(function(d) { return '<div class="card"><h3>' + s.name + '</h3><p>Status: <span class="' + (d.status==='healthy'?'green':'red') + '">' + d.status.toUpperCase() + '</span></p><p>DB: ' + (d.database||'N/A') + '</p></div>'; }).catch(function() { return '<div class="card"><h3>' + s.name + '</h3><p class="red">DOWN</p></div>'; });
-        })).then(function(results) { div.innerHTML = results.join(''); });
+    function sendMessage() {
+        const input = document.getElementById('chat-message');
+        const message = input.value.trim();
+        if (message && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(message);
+            input.value = '';
+        }
+    }
+
+    async function loadSystemStatus() {
+        const services = [
+            {name: 'auth', display: 'Authentication Service'},
+            {name: 'product', display: 'Product Service'},
+            {name: 'order', display: 'Order Service'},
+            {name: 'payment', display: 'Payment Service'},
+            {name: 'user', display: 'User Service'},
+            {name: 'notification', display: 'Notification Service'}
+        ];
+
+        const container = document.getElementById('services-status');
+        container.innerHTML = '<p>Loading system status...</p>';
+
+        const results = await Promise.all(services.map(async service => {
+            try {
+                const response = await fetch(`${API_URL}/api/${service.name}/health`);
+                const data = await response.json();
+                const statusClass = data.status === 'healthy' ? 'healthy' : 'degraded';
+                const indicatorClass = data.status === 'healthy' ? 'status-healthy' : 'status-degraded';
+                return `<div class="card ${statusClass}">
+                    <h3><span class="status-indicator ${indicatorClass}"></span>${service.display}</h3>
+                    <p><strong>Status:</strong> ${data.status}</p>
+                    <p><strong>Database:</strong> ${data.database || 'N/A'}</p>
+                    <p><small>${new Date(data.timestamp).toLocaleString()}</small></p>
+                </div>`;
+            } catch (error) {
+                return `<div class="card down">
+                    <h3><span class="status-indicator status-down"></span>${service.display}</h3>
+                    <p><strong>Status:</strong> DOWN</p>
+                    <p><small>Service unreachable</small></p>
+                </div>`;
+            }
+        }));
+
+        container.innerHTML = results.join('');
     }
 
     loadProducts();

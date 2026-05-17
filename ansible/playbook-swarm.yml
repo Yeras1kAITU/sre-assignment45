@@ -1,0 +1,25 @@
+---
+- name: Deploy with Docker Swarm
+  hosts: all
+  become: yes
+  tasks:
+    - name: Initialize Docker Swarm
+      command: docker swarm init
+      ignore_errors: yes
+      tags: swarm
+
+    - name: Deploy stack to Swarm
+      command: docker stack deploy -c docker-stack.yml microservices
+      args:
+        chdir: /opt/microservices
+      tags: swarm
+
+    - name: Verify Swarm services
+      command: docker service ls
+      register: swarm_services
+      tags: swarm
+
+    - name: Display Swarm status
+      debug:
+        var: swarm_services.stdout_lines
+      tags: swarm

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: project-user-service
+        imagePullPolicy: Never
+        env:
+        - name: DB_HOST
+          value: postgres
+        - name: DB_NAME
+          value: microservices
+        - name: DB_USER
+          value: admin
+        - name: DB_PASSWORD
+          value: admin123
+        ports:
+        - containerPort: 8003
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: microservices
+spec:
+  selector:
+    app: user-service
+  ports:
+  - port: 8003
+    targetPort: 8003
