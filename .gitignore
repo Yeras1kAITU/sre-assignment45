@@ -4,6 +4,19 @@
 .terraform/
 *.tfplan
 .terraform.lock.hcl
+terraform.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# GCP credentials
+*.json
+*.key
+credentials.json
+application_default_credentials.json
+*.private_key
+gcp-sa-key.json
 
 # Python
 __pycache__/
@@ -17,10 +30,16 @@ venv/
 *.egg-info/
 dist/
 build/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Docker
 *.log
 docker-compose.override.yml
+*.pid
 
 # IDE
 .vscode/
@@ -28,18 +47,66 @@ docker-compose.override.yml
 *.swp
 *.swo
 *~
+*.iml
+.project
+.classpath
+.settings/
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
+.directory
 
 # Sensitive
 *.pem
 *.key
-credentials
+*.cert
+*.crt
 secrets/
+credentials/
+*.secret
+.env.local
+.env.*.local
 
 # Node (if applicable)
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# Local configuration
+*.tfvars
+*.tfvars.json
+terraform.tfvars
+.terraform.tfstate.lock.info
+
+# Cloud Run specific
+service-account-key.json
+
+# Ansible
+*.retry
+ansible/roles/
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Prometheus data
+data/
+prometheus/
+
+# Grafana data
+grafana.db
+
+# Frontend build
+frontend-deploy/html/index.html.bak
+*.log
