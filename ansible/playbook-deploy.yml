@@ -1,53 +1,90 @@
 ---
-- name: Deploy Microservices Application
-  hosts: all
-  become: yes
+- name: Deploy Microservices Application with Docker Compose
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
   tasks:
-    - name: Install Docker
-      apt:
-        name: docker.io
-        state: present
-      tags: docker
+    - name: Ensure Docker is installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: yes
 
-    - name: Install Docker Compose
-      apt:
-        name: docker-compose
-        state: present
-      tags: docker
-
-    - name: Start Docker service
-      service:
-        name: docker
-        state: started
-        enabled: yes
-      tags: docker
-
-    - name: Copy application files
-      copy:
-        src: ../services/
-        dest: /opt/microservices/services/
-      tags: deploy
-
-    - name: Copy docker-compose.yml
-      copy:
-        src: ../docker-compose.yml
-        dest: /opt/microservices/docker-compose.yml
-      tags: deploy
-
-    - name: Deploy with Docker Compose
-      command: docker-compose up -d
-      args:
-        chdir: /opt/microservices
-      tags: deploy
-
-    - name: Verify services are running
-      command: docker-compose ps
-      args:
-        chdir: /opt/microservices
-      register: ps_output
-      tags: verify
-
-    - name: Display service status
+    - name: Display Docker version
       debug:
-        var: ps_output.stdout_lines
-      tags: verify
+        msg: "Docker version: {{ docker_check.stdout }}"
+
+    - name: Ensure docker-compose is installed
+      command: docker compose version
+      register: compose_check
+      ignore_errors: yes
+
+    - name: Display Docker Compose version
+      debug:
+        msg: "Docker Compose version: {{ compose_check.stdout }}"
+
+    - name: Check if services are already running
+      command: docker compose ps -q
+      args:
+        chdir: "{{ docker_compose_dir }}"
+      register: running_containers
+      ignore_errors: yes
+
+    - name: Stop existing containers if any
+      command: docker compose down
+      args:
+        chdir: "{{ docker_compose_dir }}"
+      when: running_containers.stdout != ""
+      ignore_errors: yes
+
+    - name: Build and start all services
+      command: docker compose up -d --build
+      args:
+        chdir: "{{ docker_compose_dir }}"
+      register: compose_up
+
+    - name: Wait for services to be healthy
+      pause:
+        seconds: 30
+
+    - name: Check service status
+      command: docker compose ps
+      args:
+        chdir: "{{ docker_compose_dir }}"
+      register: compose_ps
+
+    - name: Display all running services
+      debug:
+        var: compose_ps.stdout_lines
+
+    - name: Verify auth-service is healthy
+      uri:
+        url: http://localhost:8000/health
+        status_code: 200
+      register: auth_health
+      retries: 10
+      delay: 5
+
+    - name: Verify product-service is healthy
+      uri:
+        url: http://localhost:8001/health
+        status_code: 200
+      register: product_health
+      retries: 10
+      delay: 5
+
+    - name: Verify order-service is healthy
+      uri:
+        url: http://localhost:8002/health
+        status_code: 200
+      register: order_health
+      retries: 10
+      delay: 5
+
+    - name: Display verification results
+      debug:
+        msg:
+          - "Auth Service: {{ auth_health.json.status }}"
+          - "Product Service: {{ product_health.json.status }}"
+          - "Order Service: {{ order_health.json.status }}"
+      when: auth_health is defined and product_health is defined and order_health is defined
