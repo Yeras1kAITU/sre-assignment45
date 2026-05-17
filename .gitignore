@@ -60,7 +60,6 @@ desktop.ini
 
 # Sensitive
 *.pem
-*.key
 *.cert
 *.crt
 secrets/
@@ -86,7 +85,6 @@ yarn.lock
 # Local configuration
 *.tfvars
 *.tfvars.json
-terraform.tfvars
 .terraform.tfstate.lock.info
 
 # Cloud Run specific
@@ -109,4 +107,18 @@ grafana.db
 
 # Frontend build
 frontend-deploy/html/index.html.bak
-*.log
+
+# Terraform secrets
+**/terraform.tfvars
+**/.terraform/
+
+# Temporary scripts
+analyze-logs.sh
+load-test.sh
+stress-test.sh
+validate-config.sh
+
+# Old directories
+/terraform/
+/frontend/
+/services/chat-service/

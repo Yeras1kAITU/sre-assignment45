@@ -1,6 +1,0 @@
-﻿project_name = "microservices-app"
-environment  = "production"
-aws_region   = "us-east-1"
-instance_type = "t3.micro"
-key_name      = "microservices-key"
-allowed_ssh_cidr = "0.0.0.0/0"
