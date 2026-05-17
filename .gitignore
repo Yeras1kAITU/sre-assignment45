@@ -118,7 +118,20 @@ load-test.sh
 stress-test.sh
 validate-config.sh
 
-# Old directories
-/terraform/
-/frontend/
-/services/chat-service/
+# Lock files (environment specific)
+**/.terraform.lock.hcl
+
+# Temporary test outputs
+*.test-output
+coverage/
+
+# Local environment overrides
+*.local
+*.local.*
+
+# Test artifacts
+*.test
+*.out
+
+# Cloud Run deployment temp files
+*.deploy.yaml.tmp
